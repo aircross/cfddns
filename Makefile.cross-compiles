@@ -30,5 +30,6 @@ app:
 		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $${flags} go build -trimpath -ldflags "$(LDFLAGS)" -tags cfddns -o ./release/cfddns_$${target_suffix} ./; \
 		echo "Build $${os}-$${arch}$${extra:+ ($${extra})} done"; \
 	)
+	@ls ./release
 	@mv ./release/cfddns_windows_amd64 ./release/cfddns_windows_amd64.exe
 	@mv ./release/cfddns_windows_arm64 ./release/cfddns_windows_arm64.exe
