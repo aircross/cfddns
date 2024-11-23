@@ -457,8 +457,8 @@ WantedBy=multi-user.target
 // removeService 移除系统服务
 func removeService(serviceName string) {
 	switch runtime.GOOS {
-	case "windows":
-		removeWindowsService(serviceName)
+	// case "windows":
+	// 	removeWindowsService(serviceName)
 	case "linux":
 		removeLinuxService(serviceName)
 	default:
