@@ -140,56 +140,67 @@ func (cf *CfDDNS) getIP(ipType string) string {
 	return ""
 }
 
-func (cf *CfDDNS) getCurrentDNSRecordIP(ipType string) string {
-	url := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records", cf.Config.CFZoneID)
-	recordType := "A"
-	if ipType == "6" {
-		recordType = "AAAA"
+func (cf *CfDDNS) getCurrentDNSRecordIP(ipType string) map[string]string {
+	result := make(map[string]string)
+
+	// 如果 CF_IP_TYPE 是 10，同时获取 IPv4 和 IPv6
+	ipTypes := []string{ipType}
+	if ipType == "10" {
+		ipTypes = []string{"4", "6"}
 	}
 
-	req, _ := http.NewRequest("GET", url, nil)
-	// 构建请求头
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
-		"Content-Type":  "application/json",
-	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	// req.Header.Set("Authorization", "Bearer "+cf.Config.CFAPIToken)
-	// req.Header.Set("Content-Type", "application/json")
-	q := req.URL.Query()
-	q.Add("name", cf.Config.CFRecordName)
-	q.Add("type", recordType)
-	req.URL.RawQuery = q.Encode()
+	for _, t := range ipTypes {
+		recordType := "A"
+		if t == "6" {
+			recordType = "AAAA"
+		}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		logMessage(fmt.Sprintf("Error fetching DNS record: %v", err))
-		return ""
-		// os.Exit(1)
+		// 构建请求头
+		headers := map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
+			"Content-Type":  "application/json",
+		}
+
+		// 获取当前 DNS 记录
+		url := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records", cf.Config.CFZoneID)
+		req, _ := http.NewRequest("GET", url, nil)
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		q := req.URL.Query()
+		q.Add("name", cf.Config.CFRecordName)
+		q.Add("type", recordType)
+		req.URL.RawQuery = q.Encode()
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			logMessage(fmt.Sprintf("Error fetching DNS record (%s): %v", t, err))
+			result[t] = "Error fetching record"
+			continue
+		}
+		defer resp.Body.Close()
+
+		var apiResponse map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+			logMessage(fmt.Sprintf("Error decoding DNS record response (%s): %v", t, err))
+			result[t] = "Error decoding record"
+			continue
+		}
+
+		// 获取 IP 地址
+		if records, ok := apiResponse["result"].([]interface{}); ok && len(records) > 0 {
+			record := records[0].(map[string]interface{})
+			if content, ok := record["content"].(string); ok {
+				result[t] = content
+			} else {
+				result[t] = "No content found"
+			}
+		} else {
+			result[t] = "Record not found"
+		}
 	}
-	defer resp.Body.Close()
 
-	var result map[string]interface{}
-	// json.NewDecoder(resp.Body).Decode(&result)
-
-	// if records, ok := result["result"].([]interface{}); ok && len(records) > 0 {
-	// 	record := records[0].(map[string]interface{})
-	// 	return record["content"].(string)
-	// }
-	// return ""
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		logMessage(fmt.Sprintf("Error decoding DNS record response: %v", err))
-		return ""
-	}
-
-	if records, ok := result["result"].([]interface{}); ok && len(records) > 0 {
-		record := records[0].(map[string]interface{})
-		return record["content"].(string)
-	}
-
-	return ""
+	return result
 }
 
 func (cf *CfDDNS) updateDNSRecord(ipType string) {
@@ -199,9 +210,14 @@ func (cf *CfDDNS) updateDNSRecord(ipType string) {
 	if ipType == "10" {
 		ipTypes = []string{"4", "6"}
 	}
+	// 获取当前的 DNS 记录 IP（IPv4 和 IPv6）
+	currentIPs := cf.getCurrentDNSRecordIP(ipType)
 	for _, t := range ipTypes {
 		ip := cf.getIP(t)
-		currentIP := cf.getCurrentDNSRecordIP(t)
+		currentIP, ok := currentIPs[t]
+		if !ok {
+			currentIP = "Unknown" // 如果返回的 map 中不存在对应类型，设置为未知
+		}
 
 		if ip == currentIP {
 			logMessage(fmt.Sprintf("IPv%s: %s has not changed, no update needed.", t, currentIP))
@@ -228,10 +244,10 @@ func (cf *CfDDNS) updateDNSRecord(ipType string) {
 		}
 		defer resp.Body.Close()
 
-		var result map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&result)
+		var apiResponse map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&apiResponse)
 
-		if records, ok := result["result"].([]interface{}); ok && len(records) > 0 {
+		if records, ok := apiResponse["result"].([]interface{}); ok && len(records) > 0 {
 			record := records[0].(map[string]interface{})
 			recordID := record["id"].(string)
 
@@ -629,13 +645,19 @@ func main() {
 			logMessage("Test message sent successfully.")
 		case "now":
 			// 查询并显示当前域名的 DNS 记录绑定的 IP
-			logMessage("Fetching current DNS record IP...")
-			ip := cfddns.getCurrentDNSRecordIP(cfddns.Config.CFIPType)
-			if ip != "" {
-				logMessage(fmt.Sprintf("Current DNS record IP for %s: %s", cfddns.Config.CFRecordName, ip))
-			} else {
-				logMessage(fmt.Sprintf("Failed to fetch DNS record for %s.", cfddns.Config.CFRecordName))
+			logMessage("Fetching current DNS record IPs...")
+			currentIPs := cfddns.getCurrentDNSRecordIP(cfddns.Config.CFIPType)
+			for ipType, ip := range currentIPs {
+				logMessage(fmt.Sprintf("Current DNS record IPv%s for %s: %s", ipType, cfddns.Config.CFRecordName, ip))
 			}
+			// 查询并显示当前域名的 DNS 记录绑定的 IP
+			// logMessage("Fetching current DNS record IP...")
+			// ip := cfddns.getCurrentDNSRecordIP(cfddns.Config.CFIPType)
+			// if ip != "" {
+			// 	logMessage(fmt.Sprintf("Current DNS record IP for %s: %s", cfddns.Config.CFRecordName, ip))
+			// } else {
+			// 	logMessage(fmt.Sprintf("Failed to fetch DNS record for %s.", cfddns.Config.CFRecordName))
+			// }
 		case "v4", "v6":
 			if len(args) < 2 {
 				logMessage(fmt.Sprintf("Missing IP address argument for %s.", args[0]))
