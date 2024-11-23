@@ -1,4 +1,4 @@
-module cfddnsgo
+module cfddns
 
 go 1.22.3
 

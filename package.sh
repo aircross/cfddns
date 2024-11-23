@@ -13,8 +13,6 @@ mkdir -p ./release/packages
 
 os_all='linux windows darwin freebsd android'
 arch_all='386 amd64 arm arm64 mips64 mips64le mips mipsle riscv64 loong64'
-# os_all='linux windows'
-# arch_all='386 amd64'
 extra_all='_ hf'
 
 cd ./release
