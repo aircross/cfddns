@@ -11,8 +11,10 @@ make -f ./Makefile.cross-compiles
 rm -rf ./release/packages
 mkdir -p ./release/packages
 
-os_all='linux windows darwin freebsd android'
-arch_all='386 amd64 arm arm64 mips64 mips64le mips mipsle riscv64 loong64'
+# os_all='linux windows darwin freebsd android'
+# arch_all='386 amd64 arm arm64 mips64 mips64le mips mipsle riscv64 loong64'
+os_all='linux windows'
+arch_all='386 amd64'
 extra_all='_ hf'
 
 cd ./release
@@ -25,7 +27,12 @@ for os in $os_all; do
                 suffix="${os}_${arch}_${extra}"
             fi
             dir_name="cfddns_${cfddns_version}_${suffix}"
+            mkdir "./packages/${cfddns_version}"
             # cfddns_path="./packages/cfddns_${cfddns_version}_${suffix}"
+            if [ "x${os}" = x"windows" ]; then
+                mv ./cfddns_${os}_${arch}.exe ${cfddns_path}/cfddns.exe
+            else
+                mv ./cfddns_${suffix} ${cfddns_path}/cfddns
 
             # if [ "x${os}" = x"windows" ]; then
             #     if [ ! -f "./cfddns_${os}_${arch}.exe" ]; then
