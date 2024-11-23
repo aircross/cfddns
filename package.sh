@@ -27,7 +27,7 @@ for os in $os_all; do
                 suffix="${os}_${arch}_${extra}"
             fi
             dir_name="cfddns_${cfddns_version}_${suffix}"
-            mkdir "./packages/${cfddns_version}"
+            # mkdir "./packages/${cfddns_version}"
             # cfddns_path="./packages/cfddns_${cfddns_version}_${suffix}"
             if [ "x${os}" = x"windows" ]; then
                 if [ ! -f "./cfddns_${os}_${arch}.exe" ]; then
