@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+
+      - name: Grant execute permission to the package
+        run: chmod +x ./package.sh
           
       - name: Make All
         run: |
