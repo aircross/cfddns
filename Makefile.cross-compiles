@@ -15,6 +15,7 @@ app:
 		extra=$(shell echo "$(n)" | cut -d : -f 3); \
 		flags=''; \
 		target_suffix=$${os}_$${arch}; \
+		echo "This is Making $${target_suffix}"; \
 		if [ "$${os}" = "linux" ] && [ "$${arch}" = "arm" ] && [ "$${extra}" != "" ] ; then \
 			if [ "$${extra}" = "7" ]; then \
 				flags=GOARM=7; \
