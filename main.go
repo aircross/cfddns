@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 const Version = "v0.0.1"
@@ -374,8 +373,8 @@ func (cf *CfDDNS) tgMsg(message string) {
 // setupService 配置程序为系统服务
 func setupService(serviceName string) {
 	switch runtime.GOOS {
-	case "windows":
-		setupWindowsService(serviceName)
+	// case "windows":
+	// 	setupWindowsService(serviceName)
 	case "linux":
 		setupLinuxService(serviceName)
 	default:
@@ -384,31 +383,31 @@ func setupService(serviceName string) {
 }
 
 // setupWindowsService 配置 Windows 服务
-func setupWindowsService(serviceName string) {
-	m, err := mgr.Connect()
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
-		return
-	}
-	defer m.Disconnect()
+// func setupWindowsService(serviceName string) {
+// 	m, err := mgr.Connect()
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
+// 		return
+// 	}
+// 	defer m.Disconnect()
 
-	exePath, err := os.Executable()
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to get executable path: %v", err))
-		return
-	}
+// 	exePath, err := os.Executable()
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to get executable path: %v", err))
+// 		return
+// 	}
 
-	service, err := m.CreateService(serviceName, exePath, mgr.Config{
-		StartType: mgr.StartAutomatic,
-	})
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to create Windows service: %v", err))
-		return
-	}
-	defer service.Close()
+// 	service, err := m.CreateService(serviceName, exePath, mgr.Config{
+// 		StartType: mgr.StartAutomatic,
+// 	})
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to create Windows service: %v", err))
+// 		return
+// 	}
+// 	defer service.Close()
 
-	logMessage(fmt.Sprintf("Windows service '%s' created successfully.", serviceName))
-}
+// 	logMessage(fmt.Sprintf("Windows service '%s' created successfully.", serviceName))
+// }
 
 // setupLinuxService 配置 Linux 服务
 func setupLinuxService(serviceName string) {
@@ -468,46 +467,46 @@ func removeService(serviceName string) {
 }
 
 // removeWindowsService 移除 Windows 服务
-func removeWindowsService(serviceName string) {
-	m, err := mgr.Connect()
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
-		return
-	}
-	defer m.Disconnect()
+// func removeWindowsService(serviceName string) {
+// 	m, err := mgr.Connect()
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
+// 		return
+// 	}
+// 	defer m.Disconnect()
 
-	service, err := m.OpenService(serviceName)
-	if err != nil {
-		logMessage(fmt.Sprintf("Service '%s' not found: %v", serviceName, err))
-		return
-	}
-	defer service.Close()
+// 	service, err := m.OpenService(serviceName)
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Service '%s' not found: %v", serviceName, err))
+// 		return
+// 	}
+// 	defer service.Close()
 
-	// 确认服务是否由本程序创建（简单示例，可扩展为更复杂校验）
-	config, err := service.Config()
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to get service config: %v", err))
-		return
-	}
+// 	// 确认服务是否由本程序创建（简单示例，可扩展为更复杂校验）
+// 	config, err := service.Config()
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to get service config: %v", err))
+// 		return
+// 	}
 
-	if !strings.Contains(config.BinaryPathName, "cfddns") {
-		logMessage(fmt.Sprintf("Service '%s' does not appear to be created by this program.", serviceName))
-		logMessage(fmt.Sprintf("Service executable: %s", config.BinaryPathName))
-		if !confirm("Do you want to remove this service anyway? (y/N)") {
-			logMessage("Service removal canceled.")
-			return
-		}
-	}
+// 	if !strings.Contains(config.BinaryPathName, "cfddns") {
+// 		logMessage(fmt.Sprintf("Service '%s' does not appear to be created by this program.", serviceName))
+// 		logMessage(fmt.Sprintf("Service executable: %s", config.BinaryPathName))
+// 		if !confirm("Do you want to remove this service anyway? (y/N)") {
+// 			logMessage("Service removal canceled.")
+// 			return
+// 		}
+// 	}
 
-	// 删除服务
-	err = service.Delete()
-	if err != nil {
-		logMessage(fmt.Sprintf("Failed to delete service '%s': %v", serviceName, err))
-		return
-	}
+// 	// 删除服务
+// 	err = service.Delete()
+// 	if err != nil {
+// 		logMessage(fmt.Sprintf("Failed to delete service '%s': %v", serviceName, err))
+// 		return
+// 	}
 
-	logMessage(fmt.Sprintf("Service '%s' removed successfully.", serviceName))
-}
+// 	logMessage(fmt.Sprintf("Service '%s' removed successfully.", serviceName))
+// }
 
 // removeLinuxService 移除 Linux 服务
 func removeLinuxService(serviceName string) {
