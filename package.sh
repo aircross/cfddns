@@ -48,9 +48,12 @@ for os in $os_all; do
             # cp ../LICENSE ${cfddns_path}
             # cp -f ../conf/frpc.toml ${cfddns_path}
             # cp -f ../conf/frps.toml ${cfddns_path}
+            ls
+
 
             # packages
             cd ./packages
+            ls
             if [ "x${os}" = x"windows" ]; then
                 zip -rq ${dir_name}.zip ${dir_name}
             else
