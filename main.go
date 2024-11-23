@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -8,11 +9,14 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
+	"golang.org/x/sys/windows/svc/mgr"
 )
 
 const Version = "v0.0.1"
@@ -367,8 +371,196 @@ func (cf *CfDDNS) tgMsg(message string) {
 	logMessage("Telegram notification sent successfully.")
 }
 
+// setupService 配置程序为系统服务
+func setupService(serviceName string) {
+	switch runtime.GOOS {
+	case "windows":
+		setupWindowsService(serviceName)
+	case "linux":
+		setupLinuxService(serviceName)
+	default:
+		logMessage("Service setup is not supported on this operating system.")
+	}
+}
+
+// setupWindowsService 配置 Windows 服务
+func setupWindowsService(serviceName string) {
+	m, err := mgr.Connect()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
+		return
+	}
+	defer m.Disconnect()
+
+	exePath, err := os.Executable()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to get executable path: %v", err))
+		return
+	}
+
+	service, err := m.CreateService(serviceName, exePath, mgr.Config{
+		StartType: mgr.StartAutomatic,
+	})
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to create Windows service: %v", err))
+		return
+	}
+	defer service.Close()
+
+	logMessage(fmt.Sprintf("Windows service '%s' created successfully.", serviceName))
+}
+
+// setupLinuxService 配置 Linux 服务
+func setupLinuxService(serviceName string) {
+	exePath, err := os.Executable()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to get executable path: %v", err))
+		return
+	}
+
+	serviceContent := `[Unit]
+Description=CfDDNS Service
+After=network.target
+
+[Service]
+ExecStart=%s
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+`
+	serviceFile := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
+	content := fmt.Sprintf(serviceContent, exePath)
+
+	if err := os.WriteFile(serviceFile, []byte(content), 0644); err != nil {
+		logMessage(fmt.Sprintf("Failed to write service file: %v", err))
+		return
+	}
+
+	// 启用并启动服务
+	cmds := [][]string{
+		{"systemctl", "daemon-reload"},
+		{"systemctl", "enable", serviceName},
+		{"systemctl", "start", serviceName},
+	}
+
+	for _, cmd := range cmds {
+		if err := exec.Command(cmd[0], cmd[1:]...).Run(); err != nil {
+			logMessage(fmt.Sprintf("Failed to execute '%s %v': %v", cmd[0], cmd[1:], err))
+			return
+		}
+	}
+
+	logMessage(fmt.Sprintf("Linux service '%s' created and started successfully.", serviceName))
+}
+
+// removeService 移除系统服务
+func removeService(serviceName string) {
+	switch runtime.GOOS {
+	case "windows":
+		removeWindowsService(serviceName)
+	case "linux":
+		removeLinuxService(serviceName)
+	default:
+		logMessage("Service removal is not supported on this operating system.")
+	}
+}
+
+// removeWindowsService 移除 Windows 服务
+func removeWindowsService(serviceName string) {
+	m, err := mgr.Connect()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to connect to Windows service manager: %v", err))
+		return
+	}
+	defer m.Disconnect()
+
+	service, err := m.OpenService(serviceName)
+	if err != nil {
+		logMessage(fmt.Sprintf("Service '%s' not found: %v", serviceName, err))
+		return
+	}
+	defer service.Close()
+
+	// 确认服务是否由本程序创建（简单示例，可扩展为更复杂校验）
+	config, err := service.Config()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to get service config: %v", err))
+		return
+	}
+
+	if !strings.Contains(config.BinaryPathName, "cfddns") {
+		logMessage(fmt.Sprintf("Service '%s' does not appear to be created by this program.", serviceName))
+		logMessage(fmt.Sprintf("Service executable: %s", config.BinaryPathName))
+		if !confirm("Do you want to remove this service anyway? (y/N)") {
+			logMessage("Service removal canceled.")
+			return
+		}
+	}
+
+	// 删除服务
+	err = service.Delete()
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to delete service '%s': %v", serviceName, err))
+		return
+	}
+
+	logMessage(fmt.Sprintf("Service '%s' removed successfully.", serviceName))
+}
+
+// removeLinuxService 移除 Linux 服务
+func removeLinuxService(serviceName string) {
+	serviceFile := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
+
+	// 检查服务文件是否存在
+	if _, err := os.Stat(serviceFile); os.IsNotExist(err) {
+		logMessage(fmt.Sprintf("Service file '%s' not found.", serviceFile))
+		return
+	}
+
+	// 显示服务文件内容并确认
+	content, err := os.ReadFile(serviceFile)
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to read service file '%s': %v", serviceFile, err))
+		return
+	}
+	logMessage(fmt.Sprintf("Service file content:\n%s", string(content)))
+
+	if !confirm("Do you want to remove this service? (y/N)") {
+		logMessage("Service removal canceled.")
+		return
+	}
+
+	// 停止并删除服务
+	cmds := [][]string{
+		{"systemctl", "stop", serviceName},
+		{"systemctl", "disable", serviceName},
+		{"rm", serviceFile},
+		{"systemctl", "daemon-reload"},
+	}
+
+	for _, cmd := range cmds {
+		if err := exec.Command(cmd[0], cmd[1:]...).Run(); err != nil {
+			logMessage(fmt.Sprintf("Failed to execute '%s %v': %v", cmd[0], cmd[1:], err))
+			return
+		}
+	}
+
+	logMessage(fmt.Sprintf("Linux service '%s' removed successfully.", serviceName))
+}
+
+// confirm 显示确认提示
+func confirm(message string) bool {
+	fmt.Println(message)
+	reader := bufio.NewReader(os.Stdin)
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == "yes"
+}
+
 func showHelp() {
-	helpMessage := fmt.Sprintf(`
+	helpMessage := `
 CfDDNS - Dynamic DNS Updater
 
 Usage:
@@ -379,8 +571,12 @@ Commands:
   now                 Query and display the current DNS record IP for the domain.
   v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
   v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
-  h, help             Show this help message and exit.
+                      Remove the specified system service. Default service name: cfddns.
   v, ver, version     Show the program version.
+  h, help             Show this help message and exit.
+Todo:
+  s, service [name]   Set up the program as a system service. Default service name: cfddns.
+  rs, removeservice [name]
 
 Examples:
   cfddns              Run the program with the default configuration (dynamic DNS update).
@@ -388,13 +584,18 @@ Examples:
   cfddns now          Display the current IP address associated with the DNS record.
   cfddns v4 192.0.2.1 Update the domain's A record to 192.0.2.1.
   cfddns v6 2001:db8::1 Update the domain's AAAA record to 2001:db8::1.
-  cfddns help         Show this help message.
   cfddns version      Show the program version.
+  cfddns help         Show this help message.
+Todo: 
+  cfddns s            Configure the program as a system service with the default name 'cfddns'.
+  cfddns rs           Remove the program's system service with the default name 'cfddns'.
+  cfddns rs myservice Remove the system service named 'myservice'.
 
 Notes:
-  - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
-  - Ensure the configuration file is properly set up before running the program.
-`)
+  - Requires administrative privileges.
+  - Services are registered differently on Windows and Linux.
+  - Remove operation prompts if the service does not appear to be created by this program.
+`
 	fmt.Println(helpMessage)
 }
 
@@ -456,6 +657,22 @@ func main() {
 		case "v", "ver", "version":
 			// 显示版本信息
 			showVersion()
+		case "s", "service":
+			// 设置服务
+			serviceName := "cfddns"
+			if len(args) > 1 {
+				serviceName = args[1]
+			}
+			logMessage(fmt.Sprintf("Configuring service: %s", serviceName))
+			setupService(serviceName)
+		case "rs", "removeservice":
+			// 移除服务
+			serviceName := "cfddns"
+			if len(args) > 1 {
+				serviceName = args[1]
+			}
+			logMessage(fmt.Sprintf("Removing service: %s", serviceName))
+			removeService(serviceName)
 		default:
 			logMessage(fmt.Sprintf("Unknown parameter: %s", args[0]))
 			logMessage("Usage: cfddns [tgtest]")
