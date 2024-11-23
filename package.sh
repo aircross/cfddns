@@ -30,10 +30,17 @@ for os in $os_all; do
             mkdir "./packages/${cfddns_version}"
             # cfddns_path="./packages/cfddns_${cfddns_version}_${suffix}"
             if [ "x${os}" = x"windows" ]; then
+                if [ ! -f "./cfddns_${os}_${arch}.exe" ]; then
+                    continue
+                fi
                 mv ./cfddns_${os}_${arch}.exe ${cfddns_path}/cfddns.exe
             else
+                if [ ! -f "./cfddns_${suffix}" ]; then
+                    continue
+                fi
                 mv ./cfddns_${suffix} ${cfddns_path}/cfddns
             fi  
+            cp -f ../conf.toml.example ${cfddns_path}
 
             # if [ "x${os}" = x"windows" ]; then
             #     if [ ! -f "./cfddns_${os}_${arch}.exe" ]; then
