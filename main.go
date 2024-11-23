@@ -15,6 +15,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+const Version = "v0.0.1"
+
 type Config struct {
 	CFAPIToken   string `toml:"CF_API_TOKEN"`
 	CFZoneID     string `toml:"CF_ZONE_ID"`
@@ -366,7 +368,7 @@ func (cf *CfDDNS) tgMsg(message string) {
 }
 
 func showHelp() {
-	helpMessage := `
+	helpMessage := fmt.Sprintf(`
 CfDDNS - Dynamic DNS Updater
 
 Usage:
@@ -378,6 +380,7 @@ Commands:
   v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
   v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
   h, help             Show this help message and exit.
+  v, ver, version     Show the program version.
 
 Examples:
   cfddns              Run the program with the default configuration (dynamic DNS update).
@@ -386,12 +389,17 @@ Examples:
   cfddns v4 192.0.2.1 Update the domain's A record to 192.0.2.1.
   cfddns v6 2001:db8::1 Update the domain's AAAA record to 2001:db8::1.
   cfddns help         Show this help message.
+  cfddns version      Show the program version.
 
 Notes:
   - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
   - Ensure the configuration file is properly set up before running the program.
-`
+`)
 	fmt.Println(helpMessage)
+}
+
+func showVersion() {
+	fmt.Printf("CfDDNS - Dynamic DNS Updater\nVersion: %s\n", Version)
 }
 
 func (cf *CfDDNS) run() {
@@ -445,6 +453,9 @@ func main() {
 		case "h", "help":
 			// 显示帮助信息
 			showHelp()
+		case "v", "ver", "version":
+			// 显示版本信息
+			showVersion()
 		default:
 			logMessage(fmt.Sprintf("Unknown parameter: %s", args[0]))
 			logMessage("Usage: cfddns [tgtest]")
