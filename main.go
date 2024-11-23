@@ -561,7 +561,7 @@ func confirm(message string) bool {
 
 func showHelp() {
 	helpMessage := `
-CfDDNS - Dynamic DNS Updater
+CfDDNS - Cloudflare Dynamic DNS Updater
 
 Usage:
   cfddns [command] [arguments]
@@ -602,7 +602,7 @@ Notes:
 }
 
 func showVersion() {
-	fmt.Printf("CfDDNS - Dynamic DNS Updater\nVersion: %s\n", Version)
+	fmt.Printf("CfDDNS - Cloudflare Dynamic DNS Updater\nVersion: %s\n", Version)
 }
 
 func (cf *CfDDNS) run() {
