@@ -16,29 +16,29 @@ Usage:
  cfddns [command] [arguments]
   
 Commands:
- tgtest Send  a  test  message  to  the  configured  Telegram  chat.
- now  Query  and  display  the  current  DNS  record  IP  for  the  domain.
- v4  <IPv4>  Update  the  domain's IPv4 DNS record to the specified IPv4 address.
-  v6 <IPv6>           Update the domain's  IPv6  DNS  record  to  the  specified  IPv6  address.
- v,  ver,  version  Show  the  program  version.
- h,  help  Show  this  help  message  and  exit.
+  tgtest              Send a test message to the configured Telegram chat.
+  now                 Query and display the current DNS record IP for the domain.
+  v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
+  v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
+  v, ver, version     Show the program version.
+  h, help             Show this help message and exit.
 Todo:
- s,  service [name]   Set up the program as a system service. Default service name: cfddns.
- rs,  removeservice [name]
- Remove  the  specified  system  service.  Default  service  name:  cfddns.
+  s, service [name]   Set up the program as a system service. Default service name: cfddns.
+  rs, removeservice [name]
+                      Remove the specified system service. Default service name: cfddns.
   
 Examples:
- cfddns Run  the  program  with  the  default  configuration (dynamic DNS  update).
- cfddns  tgtest  Send  a  test  message  via  Telegram.
- cfddns  now Display  the  current  IP  address  associated  with  the  DNS  record.
- cfddns  v4  192.0.2.1  Update  the  domain's A record to 192.0.2.1.
-  cfddns v6 2001:db8::1 Update the domain's  AAAA  record  to  2001:db8::1.
- cfddns  version Show  the  program  version.
- cfddns  help  Show  this  help  message.
+  cfddns              Run the program with the default configuration (dynamic DNS update).
+  cfddns tgtest       Send a test message via Telegram.
+  cfddns now          Display the current IP address associated with the DNS record.
+  cfddns v4 192.0.2.1 Update the domain's A record to 192.0.2.1.
+  cfddns v6 2001:db8::1 Update the domain's AAAA record to 2001:db8::1.
+  cfddns version      Show the program version.
+  cfddns help         Show this help message.
 Todo:
- cfddns  s Configure  the  program  as  a  system  service  with  the  default  name  'cfddns'.
- cfddns  rs  Remove  the  program's system service with the default name 'cfddns'.
-  cfddns rs myservice Remove the system service named 'myservice'.
+  cfddns s            Configure the program as a system service with the default name 'cfddns'.
+  cfddns rs           Remove the program's system service with the default name 'cfddns'.
+  cfddns rs myservice Remove the system service named 'myservice'.
   
 Notes:
   - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
