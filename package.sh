@@ -33,6 +33,7 @@ for os in $os_all; do
                 mv ./cfddns_${os}_${arch}.exe ${cfddns_path}/cfddns.exe
             else
                 mv ./cfddns_${suffix} ${cfddns_path}/cfddns
+            fi  
 
             # if [ "x${os}" = x"windows" ]; then
             #     if [ ! -f "./cfddns_${os}_${arch}.exe" ]; then
