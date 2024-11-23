@@ -1,9 +1,9 @@
 # CfDDNS - Cloudflare Dynamic DNS Updater
-### 这是一个设计用于利用CF的API TOKEN自动更新IP到Cloudflare,实现域名动态更行绑定的的小工具
-### 初衷是因为自己需要将自己家里的IPv6更新到CF，以便于可以快速地通过IPv6访问自己家里的电脑
-### 从一开始的网上找到尝试修改别人的，再到尝试用python手搓，到最后的golang手搓
-### 最终借助ChetGPT，以及到处搜到编写了本小工具
-### 使用说明如下：
+##### 这是一个设计用于利用CF的API TOKEN自动更新IP到Cloudflare,实现域名动态更行绑定的的小工具
+##### 初衷是因为自己需要将自己家里的IPv6更新到CF，以便于可以快速地通过IPv6访问自己家里的电脑
+##### 从一开始的网上找到尝试修改别人的，再到尝试用python手搓，到最后的golang手搓
+##### 最终借助ChetGPT，以及到处搜到编写了本小工具
+#### 使用说明如下：
 ```shell
 CfDDNS - Cloudflare Dynamic DNS Updater
 
