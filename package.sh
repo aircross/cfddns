@@ -2,7 +2,7 @@
 set -e
 
 
-cfddns_version==$(cat version)
+cfddns_version=$(cat version)
 echo "build version: $cfddns_version"
 
 # cross_compiles
