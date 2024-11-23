@@ -571,12 +571,12 @@ Commands:
   now                 Query and display the current DNS record IP for the domain.
   v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
   v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
-                      Remove the specified system service. Default service name: cfddns.
   v, ver, version     Show the program version.
   h, help             Show this help message and exit.
 Todo:
   s, service [name]   Set up the program as a system service. Default service name: cfddns.
   rs, removeservice [name]
+                      Remove the specified system service. Default service name: cfddns.
 
 Examples:
   cfddns              Run the program with the default configuration (dynamic DNS update).
@@ -592,9 +592,11 @@ Todo:
   cfddns rs myservice Remove the system service named 'myservice'.
 
 Notes:
-  - Requires administrative privileges.
+  - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
+  - Ensure the configuration file is properly set up before running the program.
+  - system service Requires administrative privileges.
   - Services are registered differently on Windows and Linux.
-  - Remove operation prompts if the service does not appear to be created by this program.
+  - Remove system service operation prompts if the service does not appear to be created by this program.
 `
 	fmt.Println(helpMessage)
 }
