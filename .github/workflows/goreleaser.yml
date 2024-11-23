@@ -37,7 +37,8 @@ jobs:
           body_path: ./Release.md
           make_latest: true
           files: |
-            ./packages/**
+            ./release/packages/*.tar.gz
+            ./release/packages/*.zip
             ./Release.md
 
       # - name: Run GoReleaser
