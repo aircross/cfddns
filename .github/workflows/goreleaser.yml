@@ -3,7 +3,7 @@ name: goreleaser
 on:
   push:
     tags:
-      - '*'
+      - "v*.*.*"
   workflow_dispatch:
 
 permissions:
@@ -30,10 +30,20 @@ jobs:
         run: |
           ./package.sh
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          version: latest
-          args: release --clean --release-notes=./Release.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GPR_TOKEN }}
+          token: ${{ secrets.GPR_TOKEN }}
+          body_path: ./Release.md
+          make_latest: true
+          files: |
+            ./packages/**
+            ./Release.md
+
+      # - name: Run GoReleaser
+      #   uses: goreleaser/goreleaser-action@v5
+      #   with:
+      #     version: latest
+      #     args: release --clean --release-notes=./Release.md
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GPR_TOKEN }}
