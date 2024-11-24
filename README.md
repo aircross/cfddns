@@ -11,6 +11,8 @@
   
 `CF_API_TOKEN`应该是API **token** (_不是_ API key), 你可以在后面的链接处生成 [API Tokens页面](https://dash.cloudflare.com/profile/api-tokens). 通过 **Edit zone DNS** 模板来创建1个 token. 
 
+#### 创建API Token教程如下：
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-1.png">
   <img alt="CF API Token 设置步骤1" src="./assets/images/api-tokens-1.png">
