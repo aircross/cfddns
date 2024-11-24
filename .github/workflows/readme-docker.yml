@@ -1,0 +1,24 @@
+name: README-to-DockerHub
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'README_Docker.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actionhippie/pushrm@v1
+        with:
+          provider: dockerhub
+          target: ${{ secrets.DOCKERHUB_USERNAME }}/cfddns
+          readme: README_Docker.md
+          description: Docker readme for cfddns
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+  
