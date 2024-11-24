@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -49,6 +50,14 @@ func logMessage(message string) {
 
 func loadConfig() Config {
 	confPath := "conf.toml"
+
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		log.Printf("Config file not found. Creating a default config file at %s", confPath)
+		createDefaultConfig(confPath)
+	}
+
+	// 读取配置文件
 	data, err := os.ReadFile(confPath)
 	if err != nil {
 		logMessage(fmt.Sprintf("Error reading config: %v", err))
@@ -56,6 +65,7 @@ func loadConfig() Config {
 	}
 
 	var config Config
+	// 解析配置文件
 	err = toml.Unmarshal(data, &config)
 	if err != nil {
 		logMessage(fmt.Sprintf("Error parsing config: %v", err))
@@ -74,6 +84,54 @@ func loadConfig() Config {
 
 	return config
 }
+
+func createDefaultConfig(configPath string) {
+	defaultConfig := `
+# Cloudflare API配置
+cf_api_token = "your_CF_API_TOKEN_here"  # Cloudflare API Token
+cf_zone_id = "Your_CF_ZONE_ID_HERE"    # Cloudflare Zone ID
+cf_record_name = "YOUR_DOMAIN_HERE"  # 要更新的记录名称
+
+# IP类型，用于指定获取IPv4还是IPv6
+cf_ip_type = "10"  # 支持值：4（仅更新 IPv4），6（仅更新 IPv6），10（同时更新 IPv4 和 IPv6）
+
+# 执行间隔，单位为秒
+interval = 60  # 每1分钟执行一次
+
+# IP获取重试次数
+retry_count = 3
+
+# 获取IPv4地址的URL
+get_ipv4_url = "https://4.ipw.cn"
+
+# 获取IPv6地址的URL
+get_ipv6_url = "https://6.ipw.cn"
+
+# Telegram配置
+# 变动推送通知,1通知，0不通知
+notify = 1
+tg_api_url = ""  # 自定义 Telegram API URL，如果不需要，留空
+tg_token = "Your_tg_bot_token_here"
+tg_chat_id = "Your_tg_chat_id_here"
+
+# 调试模式
+debug = 0
+
+# 日志设置
+log_path = ''
+# 日志保存时间，默认7天
+log_retention = 7
+
+`
+	// 写入默认配置文件
+	err := os.WriteFile(configPath, []byte(defaultConfig), 0644)
+	if err != nil {
+		log.Fatalf("Failed to create default config file: %v", err)
+	}
+
+	log.Printf("Default config file created at %s. Please review and update it as needed.", configPath)
+}
+
 
 // 校验 IPv4 地址是否合法
 func isValidIPv4(ip string) bool {
