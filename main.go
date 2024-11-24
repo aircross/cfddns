@@ -174,9 +174,11 @@ func (cf *CfDDNS) getIP(ipType string) string {
 		if err != nil {
 			lastError = err
 			logMessage(fmt.Sprintf("Attempt %d: Failed to retrieve IP address from %s. Error: %v", i+1, url, err))
+			time.Sleep(2 * time.Second)
 		} else if resp.StatusCode != 200 {
 			lastError = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 			logMessage(fmt.Sprintf("Attempt %d: Failed to retrieve IP address from %s. Status code: %d", i+1, url, resp.StatusCode))
+			time.Sleep(2 * time.Second)
 		} else {
 			defer resp.Body.Close()
 			ip, _ := io.ReadAll(resp.Body)
