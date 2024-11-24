@@ -26,6 +26,7 @@ type Config struct {
 	CFZoneID     string `toml:"cf_zone_id"`
 	CFRecordName string `toml:"cf_record_name"`
 	CFIPType     string `toml:"cf_ip_type"`
+	AddRecordIfMissing bool   `toml:"add_record_if_missing"`
 	Interval     int    `toml:"interval"`
 	RetryCount   int    `toml:"retry_count"`
 	GetIPv4URL   string `toml:"get_ipv4_url"`
@@ -94,6 +95,9 @@ cf_record_name = "YOUR_DOMAIN_HERE"  # 要更新的记录名称
 
 # IP类型，用于指定获取IPv4还是IPv6
 cf_ip_type = "10"  # 支持值：4（仅更新 IPv4），6（仅更新 IPv6），10（同时更新 IPv4 和 IPv6）
+
+# 如果 DNS 记录不存在，是否自动添加
+add_record_if_missing = true
 
 # 执行间隔，单位为秒
 interval = 60  # 每1分钟执行一次
@@ -338,40 +342,99 @@ func (cf *CfDDNS) updateDNSRecordHandle(ipType, domainName string, ip string) bo
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	var apiResponse map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&apiResponse)
 
-	if records, ok := result["result"].([]interface{}); ok && len(records) > 0 {
+	var recordID string
+	if records, ok := apiResponse["result"].([]interface{}); ok && len(records) > 0 {
 		record := records[0].(map[string]interface{})
-		recordID := record["id"].(string)
-
-		// 更新 DNS 记录
-		data := map[string]interface{}{
-			"type":    recordType,
-			"name":    domainName,
-			"content": ip,
-			"ttl":     1800,
-			"proxied": false,
-		}
-
-		body, _ := json.Marshal(data)
-		updateURL := fmt.Sprintf("%s/%s", url, recordID)
-		updateReq, _ := http.NewRequest("PUT", updateURL, bytes.NewBuffer(body))
-		for k, v := range headers {
-			updateReq.Header.Set(k, v)
-		}
-
-		updateResp, err := http.DefaultClient.Do(updateReq)
-		if err != nil || updateResp.StatusCode != 200 {
-			logMessage(fmt.Sprintf("Failed to update DNS record: %v", err))
-			return false
-		}
-		logMessage(fmt.Sprintf("DNS IPv%s record for %s updated to %s successfully.", ipType, domainName, ip))
-		return true
-	} else {
+		recordID = record["id"].(string)
+		// currentIP = record["content"].(string)
+	} else if cf.Config.AddRecordIfMissing {
+		// 如果记录不存在并且配置允许添加
+		logMessage(fmt.Sprintf("DNS record IPv%s for %s not found. Adding a new record...", ipType, cf.Config.CFRecordName))
+		recordID = cf.addDNSRecord(recordType, ip)
+	}else {
 		logMessage(fmt.Sprintf("DNS IPv%s record for %s not found.", ipType, domainName))
 		return false
 	}
+
+	if recordID == "" {
+		logMessage(fmt.Sprintf("Failed to find or create IPv%s DNS record for %s.", ipType, cf.Config.CFRecordName))
+		return false
+	}
+
+	// 更新 DNS 记录
+	data := map[string]interface{}{
+		"type":    recordType,
+		"name":    domainName,
+		"content": ip,
+		"ttl":     1800,
+		"proxied": false,
+	}
+
+	body, _ := json.Marshal(data)
+	updateURL := fmt.Sprintf("%s/%s", url, recordID)
+	updateReq, _ := http.NewRequest("PUT", updateURL, bytes.NewBuffer(body))
+	for k, v := range headers {
+		updateReq.Header.Set(k, v)
+	}
+
+	updateResp, err := http.DefaultClient.Do(updateReq)
+	if err != nil || updateResp.StatusCode != 200 {
+		logMessage(fmt.Sprintf("Failed to update DNS record: %v", err))
+		return false
+	}
+	logMessage(fmt.Sprintf("DNS IPv%s record for %s updated to %s successfully.", ipType, domainName, ip))
+	return true
+	// } else {
+	// 	logMessage(fmt.Sprintf("DNS IPv%s record for %s not found.", ipType, domainName))
+	// 	return false
+	// }
+}
+
+// 添加 DNS 记录的辅助函数
+func (cf *CfDDNS) addDNSRecord(recordType, ip string) string {
+	headers := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
+		"Content-Type":  "application/json",
+	}
+
+	url := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records", cf.Config.CFZoneID)
+
+	data := map[string]interface{}{
+		"type":    recordType,
+		"name":    cf.Config.CFRecordName,
+		"content": ip,
+		"ttl":     1800,
+		"proxied": false,
+	}
+
+	body, _ := json.Marshal(data)
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		logMessage(fmt.Sprintf("Failed to create DNS record (%s): %v", recordType, err))
+		return ""
+	}
+	defer resp.Body.Close()
+
+	var apiResponse map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&apiResponse)
+
+	if record, ok := apiResponse["result"].(map[string]interface{}); ok {
+		if recordID, ok := record["id"].(string); ok {
+			logMessage(fmt.Sprintf("Successfully created DNS record (%s) for %s.", recordType, cf.Config.CFRecordName))
+			return recordID
+		}
+	}
+
+	logMessage(fmt.Sprintf("Failed to parse response when creating DNS record (%s).", recordType))
+	return ""
 }
 
 func (cf *CfDDNS) tgMsg(message string) {

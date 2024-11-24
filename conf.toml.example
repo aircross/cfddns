@@ -6,6 +6,9 @@ cf_record_name = "YOUR_DOMAIN_HERE"  # 要更新的记录名称
 # IP类型，用于指定获取IPv4还是IPv6
 cf_ip_type = "10"  # 支持值：4（仅更新 IPv4），6（仅更新 IPv6），10（同时更新 IPv4 和 IPv6）
 
+# 如果 DNS 记录不存在，是否自动添加
+add_record_if_missing = true
+
 # 执行间隔，单位为秒
 interval = 60  # 每1分钟执行一次
 
