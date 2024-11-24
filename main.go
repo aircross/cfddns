@@ -643,14 +643,6 @@ func main() {
 			for ipType, ip := range currentIPs {
 				logMessage(fmt.Sprintf("Current DNS record IPv%s for %s: %s", ipType, cfddns.Config.CFRecordName, ip))
 			}
-			// 查询并显示当前域名的 DNS 记录绑定的 IP
-			// logMessage("Fetching current DNS record IP...")
-			// ip := cfddns.getCurrentDNSRecordIP(cfddns.Config.CFIPType)
-			// if ip != "" {
-			// 	logMessage(fmt.Sprintf("Current DNS record IP for %s: %s", cfddns.Config.CFRecordName, ip))
-			// } else {
-			// 	logMessage(fmt.Sprintf("Failed to fetch DNS record for %s.", cfddns.Config.CFRecordName))
-			// }
 		case "v4", "v6":
 			if len(args) < 2 {
 				logMessage(fmt.Sprintf("Missing IP address argument for %s.", args[0]))
