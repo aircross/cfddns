@@ -7,37 +7,6 @@
 ##### 从一开始的网上找到尝试修改别人的，再到尝试用python手搓，到最后的golang手搓
 ##### 最终借助ChetGPT，以及到处搜到编写了本小工具
   
-🔑 CF_API_TOKEN是你的Cloudflare API token
-  
-`CF_API_TOKEN`应该是API **token** (_不是_ API key), 你可以在后面的链接处生成 [API Tokens页面](https://dash.cloudflare.com/profile/api-tokens). 通过 **Edit zone DNS** 模板来创建1个 token. 
-
-#### 创建API Token教程如下：
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-1.png">
-  <img alt="CF API Token 设置步骤1" src="./assets/images/api-tokens-1.png">
-</picture>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-2.png">
-  <img alt="CF API Token 设置步骤2" src="./assets/images/api-tokens-2.png">
-</picture>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-3.png">
-  <img alt="CF API Token 设置步骤3" src="./assets/images/api-tokens-3.png">
-</picture>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-4.png">
-  <img alt="CF API Token 设置步骤4" src="./assets/images/api-tokens-4.png">
-</picture>
-
-#### 待办事项，也可能会是一直待办，抱歉我懒:
-1. 增加日志功能
-2. 增加调试模式，只有调试模式才打印执行日志到控制台，否则后台运行
-3. 增加日志功能
-4. 修复WIndows增加系统服务功能
-5. 优化到无需指定ZoneID，这个比较麻烦，所以你懂得
-6. 增加docker编译，方便群晖之类设备的直接拉取运行
-  
 #### 使用说明如下：
 ```shell
 CfDDNS  -  Cloudflare  Dynamic  DNS  Updater
@@ -77,6 +46,40 @@ Notes:
   - Services are registered differently on Windows and Linux.
   - Remove system service operation prompts if the service does not appear to be created by this program.
 ```
+  
+#### Docker使用方法
+
+
+🔑 CF_API_TOKEN是你的Cloudflare API token
+  
+`CF_API_TOKEN`应该是API **token** (_不是_ API key), 你可以在后面的链接处生成 [API Tokens页面](https://dash.cloudflare.com/profile/api-tokens). 通过 **Edit zone DNS** 模板来创建1个 token. 
+
+#### 创建API Token教程如下：
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-1.png">
+  <img alt="CF API Token 设置步骤1" src="./assets/images/api-tokens-1.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-2.png">
+  <img alt="CF API Token 设置步骤2" src="./assets/images/api-tokens-2.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-3.png">
+  <img alt="CF API Token 设置步骤3" src="./assets/images/api-tokens-3.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/images/api-tokens-4.png">
+  <img alt="CF API Token 设置步骤4" src="./assets/images/api-tokens-4.png">
+</picture>
+
+#### 待办事项，也可能会是一直待办，抱歉我懒:
+1. 增加日志功能
+2. 增加调试模式，只有调试模式才打印执行日志到控制台，否则后台运行
+3. 增加日志功能
+4. 修复WIndows增加系统服务功能
+5. 优化到无需指定ZoneID，这个比较麻烦，所以你懂得
+6. 增加docker编译，方便群晖之类设备的直接拉取运行
 
 ## 支持的操作系统
 
