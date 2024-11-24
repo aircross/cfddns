@@ -115,7 +115,7 @@ tg_token = "Your_tg_bot_token_here"
 tg_chat_id = "Your_tg_chat_id_here"
 
 # 调试模式
-debug = 0
+debug = false
 
 # 日志设置
 log_path = ''
