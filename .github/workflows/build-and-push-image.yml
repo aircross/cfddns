@@ -73,10 +73,10 @@ jobs:
             ${{ env.TAG_CFDDNS_GPR }}
             ${{ env.TAG_CFDDNS_GPR_LATEST }}
 
-      - name: Sync frps README.md
-        uses: ms-jpq/sync-dockerhub-readme@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}s
-          readme: "./README_Docker.md"
+      # - name: Sync frps README.md
+      #   uses: ms-jpq/sync-dockerhub-readme@v1
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      #     repository: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}s
+      #     readme: "./README_Docker.md"
