@@ -48,7 +48,22 @@ Notes:
 ```
   
 #### Docker使用方法
+##### Docker快速部署
+安装Docker
+'''
+#国外服务器使用以下命令安装Docker
+curl -fsSL https://get.docker.com | sh
+# 设置开机自启
+sudo systemctl enable docker.service
+# 根据实际需要保留参数start|restart|stop
+sudo service docker start|restart|stop
+'''
 
+##### 运行Docker容器
+'''
+mkdir -p /opt/docker/cfddns/
+docker run --name cfddns -d --network host --restart=unless-stopped -v /opt/docker/cfddns/conf.toml:/usr/bin/cfddns/conf.toml  aircross/cfddns
+'''
 
 🔑 CF_API_TOKEN是你的Cloudflare API token
   
