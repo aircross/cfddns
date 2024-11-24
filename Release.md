@@ -113,3 +113,12 @@ Notes:
 
 - **armv5 / arm / arm32**: 它是一种主要与早期嵌入式系统相关的旧架构，目前不太常见，但仍可能出现在早期 Raspberry Pi 版本和一些旧智能手机等传统设备中。
 </details>
+
+## 特别感谢
+
+- [aircross](https://github.com/aircross/)
+- [ChatGPT](https://chatgpt.com/)
+- [Kimi.ai](https://kimi.moonshot.cn/)
+- [Google](https://google.com/)
+- [Golang](https://go.dev/)
+- [百度](https://baidu.com/)
