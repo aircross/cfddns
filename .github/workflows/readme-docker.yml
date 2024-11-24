@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'README_Docker.md'
+      - 'README.md'
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
         with:
           provider: dockerhub
           target: ${{ secrets.DOCKERHUB_USERNAME }}/cfddns
-          readme: README_Docker.md
+          readme: README.md
           description: Docker readme for cfddns
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
