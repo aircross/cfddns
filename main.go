@@ -21,18 +21,21 @@ import (
 const Version = "v0.0.1"
 
 type Config struct {
-	CFAPIToken   string `toml:"CF_API_TOKEN"`
-	CFZoneID     string `toml:"CF_ZONE_ID"`
-	CFRecordName string `toml:"CF_RECORD_NAME"`
-	CFIPType     string `toml:"CF_IP_TYPE"`
-	Interval     int    `toml:"INTERVAL"`
-	GetIPv4URL   string `toml:"GET_IPv4_URL"`
-	GetIPv6URL   string `toml:"GET_IPv6_URL"`
-	TGToken      string `toml:"TG_TOKEN"`
-	TGChatID     string `toml:"TG_CHAT_ID"`
-	Notify       int    `toml:"NOTIFY"`
-	RetryCount   int    `toml:"RETRY_COUNT"`
-	TGAPIURL     string `toml:"TG_API_URL"` // 将 TG_PROXY_URL 改为 TG_API_URL
+	CFAPIToken   string `toml:"cf_api_token"`
+	CFZoneID     string `toml:"cf_zone_id"`
+	CFRecordName string `toml:"cf_record_name"`
+	CFIPType     string `toml:"cf_ip_type"`
+	Interval     int    `toml:"interval"`
+	RetryCount   int    `toml:"retry_count"`
+	GetIPv4URL   string `toml:"get_ipv4_url"`
+	GetIPv6URL   string `toml:"get_ipv6_url"`
+	Notify       int    `toml:"notify"`
+	TGAPIURL     string `toml:"tg_api_url"` // 将 TG_PROXY_URL 改为 TG_API_URL
+	TGToken      string `toml:"tg_token"`
+	TGChatID     string `toml:"tg_chat_id"`
+	Debug        bool   `toml:"debug"`
+	LogPath      string `toml:"log_path"`
+	LogRetention int    `toml:"log_retention"` // 日志保留天数
 }
 
 type CfDDNS struct {
@@ -223,68 +226,29 @@ func (cf *CfDDNS) updateDNSRecord(ipType string) {
 			logMessage(fmt.Sprintf("IPv%s: %s has not changed, no update needed.", t, currentIP))
 			continue
 		}
-		recordType := "A"
-		if t == "6" {
-			recordType = "AAAA"
-		}
+		updateResult := cf.updateDNSRecordHandle(t, cf.Config.CFRecordName, ip)
 
-		// 获取 DNS 记录 ID
-		url := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records", cf.Config.CFZoneID)
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set("Authorization", "Bearer "+cf.Config.CFAPIToken)
-		req.Header.Set("Content-Type", "application/json")
-		q := req.URL.Query()
-		q.Add("name", cf.Config.CFRecordName)
-		q.Add("type", recordType)
-		req.URL.RawQuery = q.Encode()
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			logMessage(fmt.Sprintf("Error fetching IPv%s DNS record: %v", t, err))
-			continue
-		}
-		defer resp.Body.Close()
+		// 发送 Telegram 通知
+		if cf.Config.Notify == 1 {
 
-		var apiResponse map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&apiResponse)
-
-		if records, ok := apiResponse["result"].([]interface{}); ok && len(records) > 0 {
-			record := records[0].(map[string]interface{})
-			recordID := record["id"].(string)
-
-			// 更新 DNS 记录
-			data := map[string]interface{}{
-				"type":    recordType,
-				"name":    cf.Config.CFRecordName,
-				"content": ip,
-				"ttl":     1800,
-				"proxied": false,
-			}
-
-			body, _ := json.Marshal(data)
-			updateURL := fmt.Sprintf("%s/%s", url, recordID)
-			updateReq, _ := http.NewRequest("PUT", updateURL, bytes.NewBuffer(body))
-			updateReq.Header.Set("Authorization", "Bearer "+cf.Config.CFAPIToken)
-			updateReq.Header.Set("Content-Type", "application/json")
-
-			updateResp, err := http.DefaultClient.Do(updateReq)
-			if err != nil || updateResp.StatusCode != 200 {
-				logMessage(fmt.Sprintf("Failed to update IPv%s DNS record: %v", t, err))
-				continue
-			}
-			logMessage(fmt.Sprintf("IPv%s DNS record for %s updated from %s to %s successfully.", t, cf.Config.CFRecordName, currentIP, ip))
-			// 发送 Telegram 通知
-			if cf.Config.Notify == 1 {
+			if updateResult {
 				notificationMessage := fmt.Sprintf("IPv%s DNS record for %s updated from %s to %s successfully.", t, cf.Config.CFRecordName, currentIP, ip)
 				cf.tgMsg(notificationMessage)
+			} else {
+				notificationMessage := fmt.Sprintf("IPv%s DNS record for %s updated from %s to %s failed.", t, cf.Config.CFRecordName, currentIP, ip)
+				cf.tgMsg(notificationMessage)
 			}
-		} else {
-			logMessage(fmt.Sprintf("IPv%s DNS record for %s not found.", t, cf.Config.CFRecordName))
 		}
 	}
 
 }
 
 func (cf *CfDDNS) updateDNSRecordWithIP(ipType, ip string) {
+	cf.updateDNSRecordHandle(ipType, cf.Config.CFRecordName, ip)
+}
+
+func (cf *CfDDNS) updateDNSRecordHandle(ipType, domainName string, ip string) bool {
+	// 构建1个公共的DNS记录更新函数
 	recordType := "A"
 	if ipType == "6" {
 		recordType = "AAAA"
@@ -303,14 +267,14 @@ func (cf *CfDDNS) updateDNSRecordWithIP(ipType, ip string) {
 		req.Header.Set(k, v)
 	}
 	q := req.URL.Query()
-	q.Add("name", cf.Config.CFRecordName)
+	q.Add("name", domainName)
 	q.Add("type", recordType)
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		logMessage(fmt.Sprintf("Error fetching DNS record: %v", err))
-		return
+		return false
 	}
 	defer resp.Body.Close()
 
@@ -324,7 +288,7 @@ func (cf *CfDDNS) updateDNSRecordWithIP(ipType, ip string) {
 		// 更新 DNS 记录
 		data := map[string]interface{}{
 			"type":    recordType,
-			"name":    cf.Config.CFRecordName,
+			"name":    domainName,
 			"content": ip,
 			"ttl":     1800,
 			"proxied": false,
@@ -340,11 +304,13 @@ func (cf *CfDDNS) updateDNSRecordWithIP(ipType, ip string) {
 		updateResp, err := http.DefaultClient.Do(updateReq)
 		if err != nil || updateResp.StatusCode != 200 {
 			logMessage(fmt.Sprintf("Failed to update DNS record: %v", err))
-			return
+			return false
 		}
-		logMessage(fmt.Sprintf("DNS record for %s updated to %s successfully.", cf.Config.CFRecordName, ip))
+		logMessage(fmt.Sprintf("DNS IPv%s record for %s updated to %s successfully.", ipType, domainName, ip))
+		return true
 	} else {
-		logMessage(fmt.Sprintf("DNS record for %s not found.", cf.Config.CFRecordName))
+		logMessage(fmt.Sprintf("DNS IPv%s record for %s not found.", ipType, domainName))
+		return false
 	}
 }
 
@@ -357,7 +323,7 @@ func (cf *CfDDNS) tgMsg(message string) {
 
 	// 构造完整的请求 URL
 	url := fmt.Sprintf("%s/bot%s/sendMessage", baseURL, cf.Config.TGToken)
-	logMessage(url)
+	// logMessage(url)
 
 	// url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", cf.Config.TGToken)
 
