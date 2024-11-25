@@ -21,9 +21,13 @@ get_ipv4_url = "https://4.ipw.cn"
 # 获取IPv6地址的URL
 get_ipv6_url = "https://6.ipw.cn"
 
+# 获取公网 IPv4 和 IPv6 地址的 URL,备选
+# get_ipv4_url = "https://api64.ipify.org"
+# get_ipv6_url = "https://api6.ipify.org"
+
 # Telegram配置
 # 变动推送通知,1通知，0不通知
-notify = 1
+notify = false
 tg_api_url = ""  # 自定义 Telegram API URL，如果不需要，留空
 tg_token = "Your_tg_bot_token_here"
 tg_chat_id = "Your_tg_chat_id_here"

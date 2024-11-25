@@ -9,42 +9,69 @@
   
 #### 使用说明如下：
 ```shell
-CfDDNS  -  Cloudflare  Dynamic  DNS  Updater
-  
+CfDDNS - Cloudflare Dynamic DNS Updater
+
+This is a free software.
+You can get it free here:
+https://github.com/aircross/cfddns
+
+                     |||                                                         
+           ||||     |||||||||||||      |||||||||      |||      |||||     |||     
+         |||||||    |    ||||||||||     ||||||||||      ||       |||   ||||||    
+        |||    ||  ||     |||    |||     |||    |||     |||      ||   |||   ||   
+       |||     ||  ||     |||     |||    |||     |||    ||||     ||   |||   ||   
+       ||          ||||   |||      ||    |||      ||    |||||    ||    |||       
+      |||         |||||   |||      |||   |||      |||   || |||   ||     ||||     
+      |||          ||     |||       ||   |||       ||   ||   ||  ||       |||    
+      |||          ||     |||       |    |||       |    ||    || ||         ||   
+      |||          ||     |||      ||    |||      ||    ||     ||||   ||     |   
+      |||          ||     |||      ||    |||      ||    ||      |||   ||    ||   
+       ||       |  ||     |||     ||     |||     ||     |||      ||   ||||||||   
+        ||     || ||||| |||||||||||    |||||||||||    ||||||      |    ||||||    
+         ||||||||                                                                                                       
+
 Usage:
- cfddns [command] [arguments]
-  
+  cfddns [command] [arguments]
+
 Commands:
   tgtest              Send a test message to the configured Telegram chat.
+  ip                  Query and display the current IP and network priority.
   now                 Query and display the current DNS record IP for the domain.
   v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
   v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
+  v46                 Update the domain's IPv4 and IPv6 DNS record to the wan IP address.
   v, ver, version     Show the program version.
   h, help             Show this help message and exit.
 Todo:
   s, service [name]   Set up the program as a system service. Default service name: cfddns.
   rs, removeservice [name]
                       Remove the specified system service. Default service name: cfddns.
-  
+
 Examples:
   cfddns              Run the program with the default configuration (dynamic DNS update).
   cfddns tgtest       Send a test message via Telegram.
+  cfddns ip           Display the current IP address and network priority.
   cfddns now          Display the current IP address associated with the DNS record.
+  cfddns v4           Update the domain's A record to wan IPv4 IP.
   cfddns v4 192.0.2.1 Update the domain's A record to 192.0.2.1.
+  cfddns v6           Update the domain's A record to wan IPv6 IP.
   cfddns v6 2001:db8::1 Update the domain's AAAA record to 2001:db8::1.
+  cfddns v46          Update the domain's A record to wan IPv4 and IPv6 IP.
+  cfddns v            Show the program version.
+  cfddns ver          Show the program version.
   cfddns version      Show the program version.
   cfddns help         Show this help message.
-Todo:
+Todo: 
   cfddns s            Configure the program as a system service with the default name 'cfddns'.
   cfddns rs           Remove the program's system service with the default name 'cfddns'.
   cfddns rs myservice Remove the system service named 'myservice'.
-  
+
 Notes:
-  - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
-  - Ensure the configuration file is properly set up before running the program.
-  - system service Requires administrative privileges.
-  - Services are registered differently on Windows and Linux.
-  - Remove system service operation prompts if the service does not appear to be created by this program.
+  - For commands like 'v4' and 'v6', the IP address must be valid, or an error will be shown.
+  - Ensure the configuration file is properly set up before running the program.
+  - system service Requires administrative privileges.
+  - Services are registered differently on Windows and Linux.
+  - Remove system service operation prompts if the service does not appear to be created by this program.
 ```
   
 #### Docker使用方法
@@ -128,6 +155,21 @@ docker run --name cfddns -d --network host --restart=unless-stopped -v /opt/dock
 
 - **armv7 / arm / arm32**: 作为较旧的移动和嵌入式设备的架构，它仍然广泛用于Orange Pi Zero LTS、Orange Pi PC Plus、Raspberry Pi 2等设备。
 </details>
+
+## 更新日志
+
+##### 2024-11-25 v0.0.2
+1. 增加运行参数ip，用于显示当前设备的IPv4及IPv6对应的外网IP，并显示网络优先级
+2. 修改统一参数的命名方法
+3. 修改cf_ip_type参数同时设置IPv4与IPv6的参数值
+4. 优化代码中tg_api_url对应默认值的设置方法
+5. 完善帮助菜单
+6. 实现了Docker的发布，方便群晖之类的Nas可以快速部署
+7. 优化运行参数v4、v6、v46的代码，可以不用带第二参数，则为更新为当前机器的外网IP
+8. 优化tg通知默认为不启用
+
+##### 2024-11-24 v0.0.1
+发布并实现第一版本看到的所有基础功能
 
 ## 特别感谢
 

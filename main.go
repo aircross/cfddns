@@ -22,7 +22,7 @@ import (
 const Version = "v0.0.1"
 
 type Config struct {
-	CFAPIToken   string `toml:"cf_api_token"`
+	CFApiToken   string `toml:"cf_api_token"`
 	CFZoneID     string `toml:"cf_zone_id"`
 	CFRecordName string `toml:"cf_record_name"`
 	CFIPType     string `toml:"cf_ip_type"`
@@ -31,8 +31,8 @@ type Config struct {
 	RetryCount   int    `toml:"retry_count"`
 	GetIPv4URL   string `toml:"get_ipv4_url"`
 	GetIPv6URL   string `toml:"get_ipv6_url"`
-	Notify       int    `toml:"notify"`
-	TGAPIURL     string `toml:"tg_api_url"` // 将 TG_PROXY_URL 改为 TG_API_URL
+	Notify       bool   `toml:"notify"`
+	TgApiUrl     string `toml:"tg_api_url"` // 将 TG_PROXY_URL 改为 TG_API_URL
 	TGToken      string `toml:"tg_token"`
 	TGChatID     string `toml:"tg_chat_id"`
 	Debug        bool   `toml:"debug"`
@@ -45,7 +45,7 @@ type CfDDNS struct {
 }
 
 func logMessage(message string) {
-	currentTime := time.Now().Format("2006-01-02 15:04:05")
+	currentTime := time.Now().Format("2024-11-25 15:04:05")
 	fmt.Printf("[%s] %s\n", currentTime, message)
 }
 
@@ -79,8 +79,13 @@ func loadConfig() Config {
 	}
 
 	// 如果未设置 TG_API_URL，留空使用默认值
-	if config.TGAPIURL == "" {
-		config.TGAPIURL = ""
+	if config.TgApiUrl == "" {
+		config.TgApiUrl = "https://api.telegram.org"
+	}
+
+	// 如果未设置 GetIPv4URL，留空使用默认值https://4.ipw.cn
+	if config.GetIPv4URL == "" {
+		config.GetIPv4URL = "https://4.ipw.cn"
 	}
 
 	return config
@@ -94,7 +99,7 @@ cf_zone_id = "Your_CF_ZONE_ID_HERE"    # Cloudflare Zone ID
 cf_record_name = "YOUR_DOMAIN_HERE"  # 要更新的记录名称
 
 # IP类型，用于指定获取IPv4还是IPv6
-cf_ip_type = "10"  # 支持值：4（仅更新 IPv4），6（仅更新 IPv6），10（同时更新 IPv4 和 IPv6）
+cf_ip_type = "46"  # 支持值：4（仅更新 IPv4），6（仅更新 IPv6），46（同时更新 IPv4 和 IPv6）
 
 # 如果 DNS 记录不存在，是否自动添加
 add_record_if_missing = true
@@ -110,10 +115,13 @@ get_ipv4_url = "https://4.ipw.cn"
 
 # 获取IPv6地址的URL
 get_ipv6_url = "https://6.ipw.cn"
+# 获取公网 IPv4 和 IPv6 地址的 URL,备选
+# get_ipv4_url = "https://api64.ipify.org"
+# get_ipv6_url = "https://api6.ipify.org"
 
 # Telegram配置
 # 变动推送通知,1通知，0不通知
-notify = 1
+notify = false
 tg_api_url = ""  # 自定义 Telegram API URL，如果不需要，留空
 tg_token = "Your_tg_bot_token_here"
 tg_chat_id = "Your_tg_chat_id_here"
@@ -197,7 +205,7 @@ func (cf *CfDDNS) getIP(ipType string) string {
 
 	// 如果所有重试都失败，发送 Telegram 通知并终止
 	// 发送 Telegram 通知
-	if cf.Config.Notify == 1 {
+	if cf.Config.Notify {
 		notifyMessage := fmt.Sprintf("Failed to retrieve IP address from %s after %d attempts. Last error: %v", url, retryCount, lastError)
 		logMessage(notifyMessage)
 		cf.tgMsg(notifyMessage)
@@ -207,12 +215,130 @@ func (cf *CfDDNS) getIP(ipType string) string {
 	return ""
 }
 
+func (cf *CfDDNS) displayPublicIP() {
+	// 获取 IPv4 地址
+	ipv4, ipv4Err := cf.getPublicIP(cf.Config.GetIPv4URL)
+	// 获取 IPv6 地址
+	ipv6, ipv6Err := cf.getPublicIP(cf.Config.GetIPv6URL)
+
+	// 输出结果
+	if ipv4Err == nil {
+		logMessage(fmt.Sprintf("IPv4 Address: %s", ipv4))
+	} else {
+		logMessage(fmt.Sprintf("Failed to get IPv4 Address: %v", ipv4Err))
+	}
+
+	if ipv6Err == nil {
+		logMessage(fmt.Sprintf("IPv6 Address: %s", ipv6))
+	} else {
+		logMessage(fmt.Sprintf("Failed to get IPv6 Address: %v", ipv6Err))
+	}
+
+	// 判断优先级
+	// if ipv4Err == nil && ipv6Err == nil {
+	// 	logMessage("Current network priority: IPv6 > IPv4")
+	// } else if ipv6Err == nil {
+	// 	logMessage("Current network priority: IPv6")
+	// } else if ipv4Err == nil {
+	// 	logMessage("Current network priority: IPv4")
+	// } else {
+	// 	logMessage("No available network connection.")
+	// }
+}
+
+// 获取公网 IP 地址的辅助函数
+func (cf *CfDDNS) getPublicIP(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch IP from %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("non-200 status code from %s: %d", url, resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	return strings.TrimSpace(string(body)), nil
+}
+
+func displayCloudflareIPPriority() {
+	// 通过 Cloudflare 获取 IP 信息
+	url := "https://cloudflare.com/cdn-cgi/trace"
+	resp, err := http.Get(url)
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to fetch Cloudflare trace: %v", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		logMessage(fmt.Sprintf("Non-200 status code from Cloudflare trace: %d", resp.StatusCode))
+		return
+	}
+
+	// 读取响应内容
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to read Cloudflare trace response: %v", err))
+		return
+	}
+
+	// 解析响应内容
+	traceInfo := parseCloudflareTrace(string(body))
+	if traceInfo == nil {
+		logMessage("Failed to parse Cloudflare trace response.")
+		return
+	}
+
+	// 输出 IP 信息和优先级
+	ip := traceInfo["ip"]
+	// logMessage(fmt.Sprintf("Detected Public IP: %s", ip))
+
+	if isIPv6(ip) {
+		logMessage("Current network priority: IPv6")
+	} else if isIPv4(ip) {
+		logMessage("Current network priority: IPv4")
+	} else {
+		logMessage("Unknown IP type. Unable to determine network priority.")
+	}
+}
+
+// 辅助函数：解析 Cloudflare trace 响应
+func parseCloudflareTrace(body string) map[string]string {
+	traceInfo := make(map[string]string)
+	lines := strings.Split(body, "\n")
+	for _, line := range lines {
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			traceInfo[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+	return traceInfo
+}
+
+// 辅助函数：判断是否为 IPv6
+func isIPv6(ip string) bool {
+	return strings.Contains(ip, ":") && net.ParseIP(ip) != nil
+}
+
+// 辅助函数：判断是否为 IPv4
+func isIPv4(ip string) bool {
+	return strings.Contains(ip, ".") && net.ParseIP(ip) != nil
+}
+
+
+
 func (cf *CfDDNS) getCurrentDNSRecordIP(ipType string) map[string]string {
 	result := make(map[string]string)
 
-	// 如果 CF_IP_TYPE 是 10，同时获取 IPv4 和 IPv6
+	// 如果 CF_IP_TYPE 是 46，同时获取 IPv4 和 IPv6
 	ipTypes := []string{ipType}
-	if ipType == "10" {
+	if ipType == "46" {
 		ipTypes = []string{"4", "6"}
 	}
 
@@ -224,7 +350,7 @@ func (cf *CfDDNS) getCurrentDNSRecordIP(ipType string) map[string]string {
 
 		// 构建请求头
 		headers := map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
+			"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFApiToken),
 			"Content-Type":  "application/json",
 		}
 
@@ -273,8 +399,8 @@ func (cf *CfDDNS) getCurrentDNSRecordIP(ipType string) map[string]string {
 func (cf *CfDDNS) updateDNSRecord(ipType string) {
 	ipTypes := []string{ipType}
 
-	// 如果 CF_IP_TYPE 为 10，同时更新 IPv4 和 IPv6
-	if ipType == "10" {
+	// 如果 CF_IP_TYPE 为 46，同时更新 IPv4 和 IPv6
+	if ipType == "46" {
 		ipTypes = []string{"4", "6"}
 	}
 	// 获取当前的 DNS 记录 IP（IPv4 和 IPv6）
@@ -293,7 +419,7 @@ func (cf *CfDDNS) updateDNSRecord(ipType string) {
 		updateResult := cf.updateDNSRecordHandle(t, cf.Config.CFRecordName, ip)
 
 		// 发送 Telegram 通知
-		if cf.Config.Notify == 1 {
+		if cf.Config.Notify {
 
 			if updateResult {
 				notificationMessage := fmt.Sprintf("IPv%s DNS record for %s updated from %s to %s successfully.", t, cf.Config.CFRecordName, currentIP, ip)
@@ -320,7 +446,7 @@ func (cf *CfDDNS) updateDNSRecordHandle(ipType, domainName string, ip string) bo
 
 	// 构建请求头
 	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
+		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFApiToken),
 		"Content-Type":  "application/json",
 	}
 
@@ -396,7 +522,7 @@ func (cf *CfDDNS) updateDNSRecordHandle(ipType, domainName string, ip string) bo
 // 添加 DNS 记录的辅助函数
 func (cf *CfDDNS) addDNSRecord(recordType, ip string) string {
 	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFAPIToken),
+		"Authorization": fmt.Sprintf("Bearer %s", cf.Config.CFApiToken),
 		"Content-Type":  "application/json",
 	}
 
@@ -439,13 +565,14 @@ func (cf *CfDDNS) addDNSRecord(recordType, ip string) string {
 
 func (cf *CfDDNS) tgMsg(message string) {
 	// 判断是否设置了自定义的 Telegram API URL
-	baseURL := "https://api.telegram.org"
-	if cf.Config.TGAPIURL != "" {
-		baseURL = cf.Config.TGAPIURL
-	}
+	// baseURL := "https://api.telegram.org"
+	// if cf.Config.TgApiUrl != "" {
+	// 	baseURL = cf.Config.TgApiUrl
+	// }
+	// baseURL := cf.Config.TgApiUrl
 
 	// 构造完整的请求 URL
-	url := fmt.Sprintf("%s/bot%s/sendMessage", baseURL, cf.Config.TGToken)
+	url := fmt.Sprintf("%s/bot%s/sendMessage", cf.Config.TgApiUrl, cf.Config.TGToken)
 	// logMessage(url)
 
 	// url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", cf.Config.TGToken)
@@ -691,9 +818,11 @@ Usage:
 
 Commands:
   tgtest              Send a test message to the configured Telegram chat.
+  ip                  Query and display the current IP and network priority.
   now                 Query and display the current DNS record IP for the domain.
   v4 <IPv4>           Update the domain's IPv4 DNS record to the specified IPv4 address.
   v6 <IPv6>           Update the domain's IPv6 DNS record to the specified IPv6 address.
+  v46                 Update the domain's IPv4 and IPv6 DNS record to the wan IP address.
   v, ver, version     Show the program version.
   h, help             Show this help message and exit.
 Todo:
@@ -704,9 +833,15 @@ Todo:
 Examples:
   cfddns              Run the program with the default configuration (dynamic DNS update).
   cfddns tgtest       Send a test message via Telegram.
+  cfddns ip           Display the current IP address and network priority.
   cfddns now          Display the current IP address associated with the DNS record.
+  cfddns v4           Update the domain's A record to wan IPv4 IP.
   cfddns v4 192.0.2.1 Update the domain's A record to 192.0.2.1.
+  cfddns v6           Update the domain's A record to wan IPv6 IP.
   cfddns v6 2001:db8::1 Update the domain's AAAA record to 2001:db8::1.
+  cfddns v46          Update the domain's A record to wan IPv4 and IPv6 IP.
+  cfddns v            Show the program version.
+  cfddns ver          Show the program version.
   cfddns version      Show the program version.
   cfddns help         Show this help message.
 Todo: 
@@ -751,6 +886,10 @@ func main() {
 			logMessage("Executing Telegram test message...")
 			cfddns.tgMsg(testMessage)
 			logMessage("Test message sent successfully.")
+		case "ip":
+			cfddns.displayPublicIP()
+			displayCloudflareIPPriority()
+			// 
 		case "now":
 			// 查询并显示当前域名的 DNS 记录绑定的 IP
 			logMessage("Fetching current DNS record IPs...")
@@ -758,9 +897,11 @@ func main() {
 			for ipType, ip := range currentIPs {
 				logMessage(fmt.Sprintf("Current DNS record IPv%s for %s: %s", ipType, cfddns.Config.CFRecordName, ip))
 			}
-		case "v4", "v6":
+		case "v4", "v6", "v46":
 			if len(args) < 2 {
-				logMessage(fmt.Sprintf("Missing IP address argument for %s.", args[0]))
+				ipType := args[0][1:] // 删除 "v" 前缀
+				logMessage(fmt.Sprintf("Executing updateDNSRecord with IP type: %s", ipType))
+				cfddns.updateDNSRecord(ipType)
 				os.Exit(1)
 			}
 			ip := args[1]

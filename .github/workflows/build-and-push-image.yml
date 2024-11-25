@@ -78,7 +78,7 @@ jobs:
         with:
           provider: dockerhub
           target: ${{ secrets.DOCKERHUB_USERNAME }}/cfddns
-          readme: README.md
+          readme: README-Docker.md
           description: Docker readme for cfddns
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
