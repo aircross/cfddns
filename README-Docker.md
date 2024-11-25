@@ -75,6 +75,6 @@ docker run --name cfddns -d --network host --restart=unless-stopped -v /opt/dock
 
 ## 许可证
 
-[](https://github.com/RandallAnjie/EmbyController#%E8%AE%B8%E5%8F%AF%E8%AF%81)
+[](https://github.com/aircross/aircross#%E8%AE%B8%E5%8F%AF%E8%AF%81)
 
-该项目使用Apache许可证。详情请参阅[LICENSE](https://github.com/RandallAnjie/EmbyController/blob/main/LICENSE)文件。
+该项目使用Apache许可证。详情请参阅[LICENSE](https://github.com/aircross/aircross/blob/main/LICENSE)文件。
