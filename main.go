@@ -28,6 +28,7 @@ type Config struct {
 	CFIPType     string `toml:"cf_ip_type"`
 	AddRecordIfMissing bool   `toml:"add_record_if_missing"`
 	Interval     int    `toml:"interval"`
+	KeepRetry  	 int    `toml:"keep_retry"`
 	RetryCount   int    `toml:"retry_count"`
 	GetIPv4URL   string `toml:"get_ipv4_url"`
 	GetIPv6URL   string `toml:"get_ipv6_url"`
@@ -182,6 +183,10 @@ func (cf *CfDDNS) getIP(ipType string) string {
 	var lastError error
 
 	for i := 0; i < retryCount; i++ {
+		// 一直重试
+		if cf.Config.KeepRetry ==1 {
+			i=0
+		}
 		resp, err := http.Get(url)
 		if err != nil {
 			lastError = err
