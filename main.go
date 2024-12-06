@@ -108,6 +108,9 @@ add_record_if_missing = true
 # 执行间隔，单位为秒
 interval = 60  # 每1分钟执行一次
 
+# IP获取一直重试
+# 1为一直重试，其他为不一直重试
+keep_retry = 1
 # IP获取重试次数
 retry_count = 3
 
